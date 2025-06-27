@@ -43,65 +43,90 @@ def extract_bibliography_text(pages_text, last_n_pages=20):
     else:
         return ""
 
-def fix_hyphenated_words(lines):
-    """Joins lines and fixes hyphenated words split across lines."""
-    joined_text = " ".join(lines)
-    # Regex to find a word ending with a hyphen, followed by a space and a word starting with a letter
-    # and replace it with the two words joined without the hyphen and space.
-    # Example: "Com- plex" -> "Complex"
-    fixed_text = re.sub(r'([a-zA-Z]+)-\s+([a-zA-Z]+)', r'\1\2', joined_text)
+def fix_hyphenated_words(text):
+    """Joins lines and fixes hyphenated words split across lines, and removes PDF artifacts."""
+    # Fix words split by hyphen and newline/space (e.g., "Com- plex" or "Com-\nplex")
+    fixed_text = re.sub(r'([a-zA-Z]+)-\s*\n?\s*([a-zA-Z]+)', r'\1\2', text)
+    # Remove PDF artifacts like /f_ or /T_
+    fixed_text = re.sub(r'/[a-zA-Z]_|\[\d+\]', '', fixed_text) # Also remove [numbers] that might be left from IEEE
     return fixed_text
+
 
 def parse_bibliography_entries(bibliography_text):
     """Parses the bibliography text into individual entries and extracts primary author for sorting."""
     entries = []
-    # This regex attempts to find lines starting with a capital letter (likely an author's last name)
-    # or a number (for numbered lists), followed by content, and then captures the first word
-    # that looks like a last name for sorting.
-    # It's a heuristic and might need adjustment for specific bibliography styles.
-    entry_start_pattern = re.compile(r'^\s*(?:\d+\.\s*)?([A-Z][a-zA-Z\'\-]+(?:\s+[A-Z][a-zA-Z\'\-]+)*).*$', re.MULTILINE)
+    lines = bibliography_text.splitlines()
 
     current_entry_lines = []
     current_author_for_sort = ""
+    prev_indent = 0
 
-    for line in bibliography_text.splitlines():
+    for i, line in enumerate(lines):
         line_stripped = line.strip()
         if not line_stripped: # Skip empty lines
             continue
 
-        match = entry_start_pattern.match(line_stripped)
-        if match:
-            # New entry starts
+        current_indent = len(line) - len(line.lstrip())
+
+        # Heuristic: A new entry typically starts with less or equal indentation than the previous line
+        # or if it's the very first line.
+        is_new_entry_start = False
+        if i == 0: # First line is always a potential start
+            is_new_entry_start = True
+        elif current_indent <= prev_indent: # New entry if indentation is less or equal
+            is_new_entry_start = True
+        elif current_indent > prev_indent and not current_entry_lines: # If indented but no current entry, it's a new start
+            is_new_entry_start = True
+
+        if is_new_entry_start:
+            # Process the previous entry before starting a new one
             if current_entry_lines:
-                # Process the previous entry before starting a new one
-                processed_entry_text = fix_hyphenated_words(current_entry_lines)
-                entries.append((processed_entry_text, current_author_for_sort))
+                processed_entry_text = fix_hyphenated_words(" ".join(current_entry_lines))
+                # Attempt to extract author for sorting from the processed entry
+                author_match = re.search(r'^\s*(?:\d+\.\s*)?([A-Z][a-zA-Z\'\-]+(?:\s+[A-Z][a-zA-Z\'\-]+)*)', processed_entry_text)
+                if author_match:
+                    current_author_for_sort = author_match.group(1).split(',')[0].strip().lower()
+                    entries.append((processed_entry_text, current_author_for_sort))
+                else:
+                    # If no author found, it might not be a valid entry, or we can use a placeholder
+                    entries.append((processed_entry_text, "zz_no_author")) # Sort non-matching to end
 
             # Start new entry
-            # Remove leading numbering if present
-            line_without_number = re.sub(r'^\s*\d+\.\s*', '', line_stripped)
-            current_entry_lines = [line_without_number]
-            current_author_for_sort = match.group(1).split(',')[0].strip().lower()
+            current_entry_lines = [line_stripped]
         else:
             # Continuation of the current entry
-            if current_entry_lines:
-                current_entry_lines.append(line_stripped)
+            current_entry_lines.append(line_stripped)
 
-    # Add the last entry after the loop finishes
+        prev_indent = current_indent
+
+    # Process the last entry after the loop finishes
     if current_entry_lines:
-        processed_entry_text = fix_hyphenated_words(current_entry_lines)
-        entries.append((processed_entry_text, current_author_for_sort))
+        processed_entry_text = fix_hyphenated_words(" ".join(current_entry_lines))
+        author_match = re.search(r'^\s*(?:\d+\.\s*)?([A-Z][a-zA-Z\'\-]+(?:\s+[A-Z][a-zA-Z\'\-]+)*)', processed_entry_text)
+        if author_match:
+            current_author_for_sort = author_match.group(1).split(',')[0].strip().lower()
+            entries.append((processed_entry_text, current_author_for_sort))
+        else:
+            entries.append((processed_entry_text, "zz_no_author"))
+
+    # Filter out entries that are too short or clearly not bibliographic
+    # This is a heuristic and might need adjustment.
+    filtered_entries = []
+    for entry_text, sort_key in entries:
+        # Heuristic: entries should be at least 20 characters long and not just a URL or single word
+        if len(entry_text) > 20 and not entry_text.startswith("http") and " " in entry_text:
+            filtered_entries.append((entry_text, sort_key))
 
     # Sort entries by the extracted author's last name
-    entries.sort(key=lambda x: x[1])
+    filtered_entries.sort(key=lambda x: x[1])
 
-    return [entry_text for entry_text, _ in entries]
+    return [entry_text for entry_text, _ in filtered_entries]
 
 def find_citations_in_text(pages_text):
     """Finds citations in the extracted text, including page numbers."""
     author_year_regex = re.compile(r'''
         (?P<author>[A-Z][a-zA-Z\'\-]+(?:\s+[A-Z][a-zA-Z\'\-]+)*) # Author(s)
-        (?:\s+et\s+al\.?)?                                  # Optional "et al."
+        (?:\s+et\s+al\.? )?                                  # Optional "et al."
         (?:                                                    # Group for year part (either parenthesized or not)
             \s*\(                                            # Option 1: Parenthesized year
             (?P<year_paren>(?:19|20)\d{2})                    # Year inside parentheses

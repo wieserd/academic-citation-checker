@@ -12,6 +12,15 @@ def animate_message(message, duration=1):
             time.sleep(0.1)
     print(f"\r{message}   ", flush=True) # Clear animation characters
 
+def write_section_to_file(filename, content_list, result_dir):
+    file_path = os.path.join(result_dir, filename)
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write("\n".join(content_list))
+        print(f"\nResults saved to {file_path}")
+    except Exception as e:
+        print(f"Error saving results to {file_path}: {e}")
+
 def main():
     """Main function to run the application."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -112,45 +121,46 @@ def main():
     # Sort IEEE citations by page number
     ieee_citations.sort(key=lambda x: x[1])
 
-    output_content = []
-
-    output_content.append("\n--- Results ---")
-
-    output_content.append(f"\n--- Citations exist in both ({len(found_sources)} found) ---")
-    output_content.append("These are the entries from your provided source list for which a corresponding citation (based on author's last name and year) was found within the PDF document.")
+    # Prepare content for each section
+    citations_exist_in_both_content = []
+    citations_exist_in_both_content.append(f"\n--- Citations exist in both ({len(found_sources)} found) ---")
+    citations_exist_in_both_content.append("These are the entries from your provided source list for which a corresponding citation (based on author's last name and year) was found within the PDF document.")
     if found_sources:
         for source, pages in found_sources:
-            output_content.append(f"- [pages {', '.join(map(str, pages))}] {source}")
+            citations_exist_in_both_content.append(f"- [pages {', '.join(map(str, pages))}] {source}")
     else:
-        output_content.append("No entry")
+        citations_exist_in_both_content.append("No entry")
 
-    output_content.append(f"\n--- List only ({len(not_found_sources)} found) ---")
-    output_content.append("These are the entries from your provided source list for which no corresponding citation (based on author's last name and year) was found within the PDF document.")
+    list_only_content = []
+    list_only_content.append(f"\n--- List only ({len(not_found_sources)} found) ---")
+    list_only_content.append("These are the entries from your provided source list for which no corresponding citation (based on author's last name and year) was found within the PDF document.")
     if not_found_sources:
         for source in not_found_sources:
-            output_content.append(f"- {source}")
+            list_only_content.append(f"- {source}")
     else:
-        output_content.append("No entry")
+        list_only_content.append("No entry")
 
-    output_content.append("\n")
-    output_content.append(f"--- PDF only ({len(pdf_only_citations)} found) ---")
-    output_content.append("These are citations found in the PDF document that do not have a corresponding entry in your provided source list.")
+    pdf_only_content = []
+    pdf_only_content.append(f"\n--- PDF only ({len(pdf_only_citations)} found) ---")
+    pdf_only_content.append("These are citations found in the PDF document that do not have a corresponding entry in your provided source list.")
     if pdf_only_citations:
         for citation, pages in pdf_only_citations:
-            output_content.append(f"- [pages {', '.join(map(str, pages))}] {citation}")
+            pdf_only_content.append(f"- [pages {', '.join(map(str, pages))}] {citation}")
     else:
-        output_content.append("No entry")
+        pdf_only_content.append("No entry")
 
-    output_content.append(f"\n--- Citation-Free Pages ({len(grouped_uncited_pages)} groups) ---")
-    output_content.append("These are pages in the PDF where no citations were found.")
+    citation_free_pages_content = []
+    citation_free_pages_content.append(f"\n--- Citation-Free Pages ({len(grouped_uncited_pages)} groups) ---")
+    citation_free_pages_content.append("These are pages in the PDF where no citations were found.")
     if grouped_uncited_pages:
         for page_group in grouped_uncited_pages:
-            output_content.append(f"- {page_group}")
+            citation_free_pages_content.append(f"- {page_group}")
     else:
-        output_content.append("No entry")
+        citation_free_pages_content.append("No entry")
 
-    output_content.append(f"\n--- IEEE-style Citations Found ({len(ieee_citations)} found) ---")
-    output_content.append("These are numerical citations found in the PDF, typically used in IEEE style.")
+    ieee_citations_content = []
+    ieee_citations_content.append(f"\n--- IEEE-style Citations Found ({len(ieee_citations)} found) ---")
+    ieee_citations_content.append("These are numerical citations found in the PDF, typically used in IEEE style.")
     if ieee_citations:
         # Group IEEE citations by page for cleaner output
         ieee_citations_by_page = {}
@@ -161,18 +171,28 @@ def main():
 
         for page_num in sorted(ieee_citations_by_page.keys()):
             citations_on_page = ', '.join(sorted(list(set(ieee_citations_by_page[page_num]))))
-            output_content.append(f"- [page {page_num}] {citations_on_page}")
+            ieee_citations_content.append(f"- [page {page_num}] {citations_on_page}")
     else:
-        output_content.append("No entry")
+        ieee_citations_content.append("No entry")
 
-    # Write output to file
-    result_file_path = os.path.join(project_root, "data", "result.txt")
-    try:
-        with open(result_file_path, 'w', encoding='utf-8') as f:
-            f.write("\n".join(output_content))
-        print(f"\nResults saved to {result_file_path}")
-    except Exception as e:
-        print(f"Error saving results to {result_file_path}: {e}")
+    # Write each section to its own file
+    result_dir = os.path.join(project_root, "result")
+    os.makedirs(result_dir, exist_ok=True)
+
+    write_section_to_file("citations_exist_in_both.txt", citations_exist_in_both_content, result_dir)
+    write_section_to_file("list_only.txt", list_only_content, result_dir)
+    write_section_to_file("pdf_only.txt", pdf_only_content, result_dir)
+    write_section_to_file("citation_free_pages.txt", citation_free_pages_content, result_dir)
+    write_section_to_file("ieee_citations.txt", ieee_citations_content, result_dir)
+
+    # Reconstruct output_content for console printing
+    output_content = []
+    output_content.append("\n--- Results ---")
+    output_content.extend(citations_exist_in_both_content)
+    output_content.extend(list_only_content)
+    output_content.extend(pdf_only_content)
+    output_content.extend(citation_free_pages_content)
+    output_content.extend(ieee_citations_content)
 
     # Also print to console for immediate feedback
     print("\n".join(output_content))
@@ -197,11 +217,11 @@ def main():
 
         # Append bibliography output to result.txt and print to console
         try:
-            with open(result_file_path, 'a', encoding='utf-8') as f:
+            with open(os.path.join(result_dir, "extracted_bibliography.txt"), 'w', encoding='utf-8') as f:
                 f.write("\n".join(bib_output_content))
-            print(f"\nBibliography appended to {result_file_path}")
+            print(f"\nBibliography saved to {os.path.join(result_dir, "extracted_bibliography.txt")}")
         except Exception as e:
-            print(f"Error appending bibliography to {result_file_path}: {e}")
+            print(f"Error saving bibliography to {os.path.join(result_dir, "extracted_bibliography.txt")}: {e}")
 
         print("\n".join(bib_output_content))
 

@@ -57,27 +57,27 @@ pdf_source_checker/
 
 ## Output Explanation
 
-The application will first output several distinct sections to the console and saved to `data/result.txt`:
+The application will first output several distinct sections to the console. These sections are also saved to individual `.txt` files within the `pdf_source_checker/result/` directory:
 
-*   **--- Citations exist in both (X found) ---**
+*   **`citations_exist_in_both.txt`**: **--- Citations exist in both (X found) ---**
     These are the entries from your provided source list for which a corresponding citation (based on author's last name and year) was found within the PDF document. These are sorted by their lowest page number. If no entries are found, it will display "No entry".
 
-*   **--- List only (Y found) ---**
+*   **`list_only.txt`**: **--- List only (Y found) ---**
     These are the entries from your provided source list for which no corresponding citation (based on author's last name and year) was found within the PDF document. This indicates sources you have, but are not cited in the PDF. These are sorted alphabetically by citation string. If no entries are found, it will display "No entry".
 
-*   **--- PDF only (Z found) ---**
+*   **`pdf_only.txt`**: **--- PDF only (Z found) ---**
     These are citations found in the PDF document that do not have a corresponding entry in your provided source list. This can help you identify sources cited in the PDF that you might not have in your personal bibliography. These are sorted by their lowest page number. If no entries are found, it will display "No entry".
 
-*   **--- Citation-Free Pages (A groups) ---**
+*   **`citation_free_pages.txt`**: **--- Citation-Free Pages (A groups) ---**
     These are pages in the PDF where no citations (author-year or IEEE-style) were found. Consecutive pages are grouped into ranges (e.g., "pages 40-45" for 3 or more consecutive pages, "page 10" for single pages, or "pages 12, 13" for two consecutive pages). If no such pages are found, it will display "No entry".
 
-*   **--- IEEE-style Citations Found (B found) ---**
+*   **`ieee_citations.txt`**: **--- IEEE-style Citations Found (B found) ---**
     These are numerical citations found in the PDF (e.g., `[1]`, `[2,3]`, `[4]-[6]`), typically used in IEEE style. They are grouped by page number. If no entries are found, it will display "No entry".
 
 **Optional Bibliography Extraction:**
-After the main results are displayed, the application will prompt you if you wish to extract the bibliography from the PDF. If you agree, a new section will be appended to `data/result.txt` and printed to the console:
+After the main results are displayed, the application will prompt you if you wish to extract the bibliography from the PDF. If you agree, a new section will be appended to `extracted_bibliography.txt` within the `pdf_source_checker/result/` directory and printed to the console:
 
-*   **--- Extracted Bibliography from PDF (C entries) ---**
+*   **`extracted_bibliography.txt`**: **--- Extracted Bibliography from PDF (C entries) ---**
     These are entries extracted from the bibliography/references section of the PDF, sorted by primary author. This is a heuristic process and may not be perfectly accurate for all bibliography styles. If no entries are found, it will display "No entry".
 
 ## Current Limitations / Assumptions
