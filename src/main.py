@@ -1,7 +1,16 @@
 import os
-from pdf_processor import extract_text_from_pdf, find_citations_in_text
+import time
+from pdf_processor import extract_text_from_pdf, find_citations_in_text, extract_bibliography_text, parse_bibliography_entries
 from source_parser import parse_source_list
 from comparator import compare_sources
+
+def animate_message(message, duration=1):
+    end_time = time.time() + duration
+    while time.time() < end_time:
+        for char in ['|', '/', '-', '\\']:
+            print(f"\r{message} {char}", end='', flush=True)
+            time.sleep(0.1)
+    print(f"\r{message}   ", flush=True) # Clear animation characters
 
 def main():
     """Main function to run the application."""
@@ -22,9 +31,8 @@ def main():
             if len(lines) >= 2:
                 pdf_path = lines[0].strip()
                 source_file_path = lines[1].strip()
-                print(f"Using paths from {paths_file}:")
-                print(f"  PDF Path: {pdf_path}")
-                print(f"  Source List Path: {source_file_path}")
+                animate_message("Reading paths from paths.txt", duration=1)
+                print("Reading paths from paths.txt ... SUCCESS!!")
             else:
                 print(f"{paths_file} found but does not contain both paths. Prompting user.")
     except FileNotFoundError:
@@ -50,7 +58,11 @@ def main():
     if pdf_text_pages is None:
         return # Exit if PDF text extraction failed
 
-    pdf_citations, ieee_citations = find_citations_in_text(pdf_text_pages)
+    pdf_citations = []
+    ieee_citations = []
+    if pdf_text_pages: # Only call find_citations_in_text if there's text to process
+        pdf_citations, ieee_citations = find_citations_in_text(pdf_text_pages)
+
     user_sources = parse_source_list(source_file_path)
     found_sources, not_found_sources, pdf_only_citations = compare_sources(pdf_citations, user_sources)
 
@@ -154,7 +166,7 @@ def main():
         output_content.append("No entry")
 
     # Write output to file
-    result_file_path = os.path.join("data", "result.txt")
+    result_file_path = os.path.join(project_root, "data", "result.txt")
     try:
         with open(result_file_path, 'w', encoding='utf-8') as f:
             f.write("\n".join(output_content))
@@ -164,6 +176,34 @@ def main():
 
     # Also print to console for immediate feedback
     print("\n".join(output_content))
+
+    # Optional bibliography extraction
+    extract_bib = input("\nWe could also extract the bibliography from the PDF. Would you like that? (yes/no): ").lower()
+    if extract_bib == 'yes':
+        pdf_bibliography_entries = []
+        if pdf_text_pages:
+            bibliography_text = extract_bibliography_text(pdf_text_pages)
+            if bibliography_text:
+                pdf_bibliography_entries = parse_bibliography_entries(bibliography_text)
+
+        bib_output_content = []
+        bib_output_content.append(f"\n--- Extracted Bibliography from PDF ({len(pdf_bibliography_entries)} entries) ---")
+        bib_output_content.append("These are entries extracted from the bibliography/references section of the PDF, sorted by primary author.")
+        if pdf_bibliography_entries:
+            for entry in pdf_bibliography_entries:
+                bib_output_content.append(f"- {entry}")
+        else:
+            bib_output_content.append("No entry")
+
+        # Append bibliography output to result.txt and print to console
+        try:
+            with open(result_file_path, 'a', encoding='utf-8') as f:
+                f.write("\n".join(bib_output_content))
+            print(f"\nBibliography appended to {result_file_path}")
+        except Exception as e:
+            print(f"Error appending bibliography to {result_file_path}: {e}")
+
+        print("\n".join(bib_output_content))
 
 if __name__ == "__main__":
     main()

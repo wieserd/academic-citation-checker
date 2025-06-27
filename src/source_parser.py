@@ -11,7 +11,7 @@ def parse_source_list(source_file_path):
                 # Refined regex to capture author and year from the beginning of the line
                 # It looks for an author name (can include initials) followed by a year.
                 # It tries to be robust to common variations in citation formats.
-                match = re.search(r'^\s*([A-Za-zÀ-ÖØ-öø-ÿ]+(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ]\.?)*)(?:\s+et\s+al\.)?[^\d]*((?:19|20)\d{2})', line)
+                match = re.search(r'^(?:\s*(?P<author>[A-Za-zÀ-ÖØ-öø-ÿ]+(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ]\.?)*)(?:(?:,\s*|\s+and\s+|\s*&\s*)[A-Za-zÀ-ÖØ-öø-ÿ]+(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ]\.?)*)*)?.*?\(?((?:19|20)\d{2})\)?', line)
                 if match:
                     author_part = match.group(1).split(',')[0].strip() # Get the first author's last name
                     year = match.group(2)

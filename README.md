@@ -39,7 +39,7 @@ pdf_source_checker/
 
 1.  **Navigate to the `src` directory:**
     ```bash
-    cd /Users/YOUR_USERNAME/pdf_source_checker/src
+    cd /Users/dw2022/pdf_source_checker/src
     ```
 2.  **Install the required Python libraries:**
     ```bash
@@ -53,10 +53,11 @@ pdf_source_checker/
     ```bash
     python main.py
     ```
+    The application will display animated messages during path reading and processing.
 
 ## Output Explanation
 
-The application will output several distinct sections, both to the console and saved to `data/result.txt`:
+The application will first output several distinct sections to the console and saved to `data/result.txt`:
 
 *   **--- Citations exist in both (X found) ---**
     These are the entries from your provided source list for which a corresponding citation (based on author's last name and year) was found within the PDF document. These are sorted by their lowest page number. If no entries are found, it will display "No entry".
@@ -73,7 +74,14 @@ The application will output several distinct sections, both to the console and s
 *   **--- IEEE-style Citations Found (B found) ---**
     These are numerical citations found in the PDF (e.g., `[1]`, `[2,3]`, `[4]-[6]`), typically used in IEEE style. They are grouped by page number. If no entries are found, it will display "No entry".
 
+**Optional Bibliography Extraction:**
+After the main results are displayed, the application will prompt you if you wish to extract the bibliography from the PDF. If you agree, a new section will be appended to `data/result.txt` and printed to the console:
+
+*   **--- Extracted Bibliography from PDF (C entries) ---**
+    These are entries extracted from the bibliography/references section of the PDF, sorted by primary author. This is a heuristic process and may not be perfectly accurate for all bibliography styles. If no entries are found, it will display "No entry".
+
 ## Current Limitations / Assumptions
 
 *   **In-text Citation Detection:** The application now uses a more flexible regular expression to detect a wider variety of in-text citation patterns, including those with and without parentheses, "et al.", and optional page numbers (e.g., "Author (YYYY)", "Author, YYYY", "Author et al. (YYYY, p. X)"). It also specifically identifies IEEE-style numerical citations (e.g., `[1]`, `[2,3]`).
-*   **Source List Parsing:** The `parse_source_list` function uses a regular expression to extract the first author's last name and the year from the beginning of each line in your source file. It expects a format where the author's last name and a four-digit year (19xx or 20xx) are present and relatively early in the line. Unusual or highly varied bibliographic formats might not be parsed correctly.
+*   **Bibliography Extraction:** The extraction and parsing of bibliography entries from the PDF is a heuristic process and may not be perfectly accurate for all bibliography styles. It might miss some entries or incorrectly parse others, especially for complex or non-standard formats. Further refinement of the regular expressions in `pdf_processor.py` may be needed for specific document types.
+*   **Source List Parsing:** The `parse_source_list` function uses a more flexible regular expression to extract the first author's last name and the year from the beginning of each line in your source file. It aims to handle a wider variety of common bibliographic entry formats, but highly unusual or non-standard formats might still be parsed incorrectly.
