@@ -19,7 +19,7 @@ The application processes your PDF and source list, standardizing citations to a
 
 1.  **Navigate to the project directory:**
     ```bash
-    cd /Users/dw2022/pdf_source_checker
+    cd /pdf_source_checker
     ```
 2.  **Install the required Python libraries:**
     ```bash
