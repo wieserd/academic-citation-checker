@@ -39,7 +39,7 @@ pdf_source_checker/
 
 1.  **Navigate to the `src` directory:**
     ```bash
-    cd /Users/dw2022/pdf_source_checker/src
+    cd /Users/YOUR_USERNAME/pdf_source_checker/src
     ```
 2.  **Install the required Python libraries:**
     ```bash
